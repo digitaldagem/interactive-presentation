@@ -1,0 +1,57 @@
+name: CI Pipeline Job
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  id:
+    name: CI Pipeline Job
+    runs-on: ubuntu-latest
+
+    steps:
+    
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Setup Golang caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-golang-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-golang-
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build and Start Services
+        run: make up
+
+      - name: Run Unit Tests
+        run: make unit-tests
+
+      - name: Run Integration Tests
+        run: make integration-tests
+
+      - name: Stop Services
+        run: docker-compose down -v --remove-orphans
+
+      - name: Remove Images
+        run: |
+          docker rmi interactive-presentation_src
+          docker rmi postgres

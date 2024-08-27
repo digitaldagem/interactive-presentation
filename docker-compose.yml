@@ -1,0 +1,38 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: docker
+      POSTGRES_USER: docker
+      POSTGRES_DB: docker
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: pg_isready -U docker
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - testing
+    volumes:
+      - data:/var/lib/postgresql/data
+  src:
+    container_name: src
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - testing
+    environment:
+      DATABASE_URL: "host=postgres user=docker password=docker dbname=docker sslmode=disable"
+    ports:
+      - "8080:8080"
+volumes:  
+  data: {}
+networks:
+  testing:
+    driver: bridge
